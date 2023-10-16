@@ -1,6 +1,7 @@
 import openpyxl
 import tkinter as tk
-from tkinter import filedialog, simpledialog
+from tkinter import filedialog, simpledialog, messagebox
+from tkinter.ttk import Combobox  # Import Combobox
 
 def merge_similar_cells(filepath, column):
     wb = openpyxl.load_workbook(filepath)
@@ -18,13 +19,42 @@ def merge_similar_cells(filepath, column):
                 start_row = row - 1
         else:
             if start_row:
-                ws.merge_cells(start_row=start_row, start_col=ord(column) - 65, 
-                               end_row=row-1, end_col=ord(column) - 65)
+                cell_range = f"{column}{start_row}:{column}{row-1}"
+                ws.merge_cells(cell_range)
                 start_row = None
 
         prev_value = current_value
 
+    # Handling the end case
+    if start_row:
+        cell_range = f"{column}{start_row}:{column}{max_row}"
+        ws.merge_cells(cell_range)
+
     wb.save(filepath)
+
+
+def select_column():
+    """Function to show a dropdown for column selection and return the selected column."""
+    win = tk.Toplevel()
+    win.title("Select Column")
+
+    label = tk.Label(win, text="Select a column:")
+    label.pack(padx=10, pady=10)
+
+    columns = [chr(i) for i in range(65, 91)]  # A to Z
+    combo = Combobox(win, values=columns)
+    combo.pack(padx=10, pady=10)
+    combo.set("A")
+
+    def on_ok():
+        win.selected_column = combo.get()
+        win.destroy()
+
+    btn_ok = tk.Button(win, text="OK", command=on_ok)
+    btn_ok.pack(padx=10, pady=20)
+
+    win.wait_window()  # Wait until the window is closed
+    return win.selected_column
 
 def main():
     root = tk.Tk()
@@ -34,11 +64,11 @@ def main():
     if not filepath:
         return
 
-    column = simpledialog.askstring("Input", "Enter the column (e.g. 'A'):")
+    column = select_column()  # Use the new function to get column selection
 
     if column:
         merge_similar_cells(filepath, column.upper())
-        tk.messagebox.showinfo("Success", "Cells merged successfully!")
+        messagebox.showinfo("Success", "Cells merged successfully!")
 
 if __name__ == "__main__":
     main()
